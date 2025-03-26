@@ -36,28 +36,50 @@ jobs:
           Start-Process -FilePath "ghostscript_installer.exe" -ArgumentList "/S" -Wait
           echo "Ghostscript installed"
 
-      - name: Build executable
+      - name: Build executable for Linux
+        if: runner.os == 'Linux'
         run: |
-          if ($env:RUNNER_OS -eq 'Linux') {
-            pyinstaller --onefile --name PDFCompressor main.py
-          }
-          if ($env:RUNNER_OS -eq 'Windows') {
-            python3 -m PyInstaller --onefile --windowed --name PDFCompressor main.py
-          }
+          pyinstaller --onefile --name PDFCompressor main.py
+  
+      - name: Build executable for Windows
+        if: runner.os == 'Windows'
+        run: |
+          python3 -m PyInstaller --onefile --windowed --name PDFCompressor main.py
 
-      - name: Upload executable as artifact
+      - name: Upload executable as artifact for Linux
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: Executables
           path: |
             dist/PDFCompressor
 
-      - name: Create Release
-        id: create_release
+      - name: Upload executable as artifact for Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Executables
+          path: |
+            dist/PDFCompressor.exe
+
+      - name: Create Release for Linux
+        if: runner.os == 'Linux'
+        id: create_release_for_linux
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
           files: |
             dist/PDFCompressor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release for Windows
+        if: runner.os == 'Windows'
+        id: create_release_for_windows
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          files: |
+            dist/PDFCompressor.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
