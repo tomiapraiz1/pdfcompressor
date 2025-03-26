@@ -38,12 +38,12 @@ jobs:
 
       - name: Build executable
         run: |
-          if [ $RUNNER_OS == 'Linux' ]; then
+          if ($env:RUNNER_OS -eq 'Linux') {
             pyinstaller --onefile --name PDFCompressor main.py
-          fi
-          if [ $RUNNER_OS == 'Windows' ]; then
+          }
+          if ($env:RUNNER_OS -eq 'Windows') {
             python3 -m PyInstaller --onefile --windowed --name PDFCompressor main.py
-          fi
+          }
 
       - name: Upload executable as artifact
         uses: actions/upload-artifact@v4
