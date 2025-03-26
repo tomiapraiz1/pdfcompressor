@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: Executables
+          name: ExecutablesLinux
           path: |
             dist/PDFCompressor
 
@@ -58,7 +58,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: Executables
+          name: ExecutablesWindows
           path: |
             dist/PDFCompressor.exe
 
