@@ -1,0 +1,54 @@
+name: Build and Release Executables
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Build executable
+        run: |
+          if [ $RUNNER_OS == 'Linux' ]; then
+            pyinstaller --onefile --name PDFCompressor main.py
+          fi
+          if [ $RUNNER_OS == 'Windows' ]; then
+            python3 -m PyInstaller --onefile --windowed --name PDFCompressor main.py
+          fi
+
+      - name: Upload executable as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Executables
+          path: |
+            dist/PDFCompressor
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          files: |
+            dist/PDFCompressor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
