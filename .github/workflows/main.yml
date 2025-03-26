@@ -26,6 +26,12 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
+      - name: Install Ghostscript on Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install ghostscript -y
+          echo "Ghostscript installed"
+
       - name: Build executable
         run: |
           if [ $RUNNER_OS == 'Linux' ]; then
@@ -47,7 +53,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
           files: |
             dist/PDFCompressor
         env:
