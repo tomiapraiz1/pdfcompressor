@@ -67,7 +67,7 @@ jobs:
         id: create_release_for_linux
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }} - Linux
+          tag_name: ${{ github.ref_name }}-linux
           files: |
             dist/PDFCompressor
         env:
@@ -78,7 +78,7 @@ jobs:
         id: create_release_for_windows
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }} - Windows
+          tag_name: ${{ github.ref_name }}-windows
           files: |
             dist/PDFCompressor.exe
         env:
