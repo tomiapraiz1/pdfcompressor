@@ -32,7 +32,7 @@ jobs:
       - name: Download and Install Ghostscript
         if: runner.os == 'Windows'
         run: |
-          Invoke-WebRequest -Uri "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10050/gs10050w64.exe" -OutFile "ghostscript_installer.exe"
+          Invoke-WebRequest -Uri "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/gs1000w32.exe" -OutFile "ghostscript_installer.exe"
           Start-Process -FilePath "ghostscript_installer.exe" -ArgumentList "/S" -Wait
           echo "Ghostscript installed"
 
