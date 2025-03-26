@@ -29,10 +29,11 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Install Ghostscript on Windows
+      - name: Download and Install Ghostscript
         if: runner.os == 'Windows'
         run: |
-          choco install ghostscript -y
+          Invoke-WebRequest -Uri "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10050/gs10050w64.exe" -OutFile "ghostscript_installer.exe"
+          Start-Process -FilePath "ghostscript_installer.exe" -ArgumentList "/S" -Wait
           echo "Ghostscript installed"
 
       - name: Build executable
