@@ -14,21 +14,23 @@ def get_ghostscript_path() -> str:
     Resolve the absolute path to gswin64c.exe.
 
     Search order:
-    1. gs_bin/ next to the bundled executable (sys._MEIPASS when frozen).
-    2. gs_bin/ relative to this source file (manual vendor setups).
-    3. System PATH (Ghostscript installed system-wide).
+    1. gs_bin/gswin64c.exe  — frozen bundle (sys._MEIPASS).
+    2. gs/bin/gswin64c.exe  — repo-local copy (development).
+    3. System PATH          — fallback for ad-hoc setups.
     """
     if getattr(sys, "frozen", False):
-        base = sys._MEIPASS  # type: ignore[attr-defined]
+        # PyInstaller extracts gs/bin/* → gs_bin/ inside sys._MEIPASS
+        bundled = os.path.join(sys._MEIPASS, "gs_bin", "gswin64c.exe")  # type: ignore[attr-defined]
+        if os.path.isfile(bundled):
+            return bundled
     else:
-        # src/compressors/ → go up two levels to project root
-        base = os.path.dirname(
+        # src/compressors/ → up two levels → project root → gs/bin/
+        project_root = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         )
-
-    bundled = os.path.join(base, "gs_bin", "gswin64c.exe")
-    if os.path.isfile(bundled):
-        return bundled
+        repo_gs = os.path.join(project_root, "gs", "bin", "gswin64c.exe")
+        if os.path.isfile(repo_gs):
+            return repo_gs
 
     for name in ("gswin64c", "gswin32c", "gs"):
         found = shutil.which(name)
@@ -37,21 +39,21 @@ def get_ghostscript_path() -> str:
 
     raise FileNotFoundError(
         "Ghostscript not found.\n"
-        "Install it from https://www.ghostscript.com/ or place gswin64c.exe "
-        "inside a gs_bin/ folder next to the application."
+        "Place gswin64c.exe and gsdll64.dll inside the gs/bin/ folder "
+        "at the root of the repository."
     )
 
 
 def get_ghostscript_lib() -> str | None:
-    """Return the bundled gs_lib path if present, for GS_LIB env variable."""
+    """Return the gs_lib path for the GS_LIB env variable."""
     if getattr(sys, "frozen", False):
-        base = sys._MEIPASS  # type: ignore[attr-defined]
+        # PyInstaller extracts gs/lib/* → gs_lib/ inside sys._MEIPASS
+        lib = os.path.join(sys._MEIPASS, "gs_lib")  # type: ignore[attr-defined]
     else:
-        base = os.path.dirname(
+        project_root = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         )
-
-    lib = os.path.join(base, "gs_lib")
+        lib = os.path.join(project_root, "gs", "lib")
     return lib if os.path.isdir(lib) else None
 
 

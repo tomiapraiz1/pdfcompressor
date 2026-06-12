@@ -12,28 +12,24 @@ Build with:
     uv run pyinstaller PDFCompressor.spec
 """
 
-import glob
 import os
 import sys
 from pathlib import Path
 
 
-# ── Locate Ghostscript installation ──────────────────────────────────────────
+# ── Locate Ghostscript from repo-local gs/ folder ───────────────────────────
 
-def _find_gs_root() -> Path:
-    candidates = glob.glob(r"C:\Program Files\gs\gs*") + \
-                 glob.glob(r"C:\Program Files (x86)\gs\gs*")
-    if not candidates:
-        raise RuntimeError(
-            "Ghostscript installation not found under C:\\Program Files\\gs\\. "
-            "Run the GitHub Actions workflow or install Ghostscript manually."
-        )
-    return Path(sorted(candidates)[-1])   # newest version wins
+project_root = Path(SPECPATH)
+gs_root      = project_root / "gs"
+gs_bin_dir   = gs_root / "bin"
+gs_lib_dir   = gs_root / "lib"
 
-
-gs_root = _find_gs_root()
-gs_bin_dir  = gs_root / "bin"
-gs_lib_dir  = gs_root / "lib"
+if not gs_bin_dir.is_dir():
+    raise RuntimeError(
+        f"gs/bin/ not found at {gs_bin_dir}.\n"
+        "Copy gswin64c.exe, gsdll64.dll and the rest of the Ghostscript bin/ "
+        "files into the gs/bin/ folder at the root of the repository."
+    )
 
 
 # Binaries: exe + all DLLs from the bin directory
@@ -65,7 +61,6 @@ a = Analysis(
     excludes=[
         # Heavy stdlib/third-party modules we never use
         "matplotlib", "numpy", "scipy", "pandas",
-        "PIL", "Pillow",
         "IPython", "notebook",
         "xmlrpc", "pydoc", "doctest",
         "unittest",
