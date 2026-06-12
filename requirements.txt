@@ -1,3 +1,0 @@
-ghostscript
-PyQt6
-pyinstaller

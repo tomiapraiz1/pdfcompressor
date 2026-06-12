@@ -1,0 +1,8 @@
+[project]
+name = "pdfcompressor"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["customtkinter", "tkinterdnd2", "Pillow"]
+
+[dependency-groups]
+dev = ["pyinstaller"]

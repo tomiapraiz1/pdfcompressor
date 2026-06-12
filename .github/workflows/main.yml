@@ -1,85 +1,83 @@
-name: Build and Release Executables
+name: Build and Release
 
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.x'
+          python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller
-          pip install -r requirements.txt
+      - name: Install Python dependencies
+        run: uv sync --group dev
 
-      - name: Download and Install Ghostscript
-        if: runner.os == 'Windows'
+      - name: Download and install Ghostscript (64-bit)
+        shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/gs1000w32.exe" -OutFile "ghostscript_installer.exe"
-          Start-Process -FilePath "ghostscript_installer.exe" -ArgumentList "/S" -Wait
-          echo "Ghostscript installed"
+          $gs_url = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10050/gs10050w64.exe"
+          $installer = "$env:TEMP\gs_installer.exe"
+          Write-Host "Downloading Ghostscript..."
+          Invoke-WebRequest -Uri $gs_url -OutFile $installer
+          Write-Host "Installing Ghostscript silently..."
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
+          $gs_root = Get-ChildItem "C:\Program Files\gs" | Sort-Object Name | Select-Object -Last 1
+          Write-Host "Ghostscript installed at: $($gs_root.FullName)"
+          echo "GS_ROOT=$($gs_root.FullName)" | Out-File -Append $env:GITHUB_ENV
 
-      - name: Build executable for Linux
-        if: runner.os == 'Linux'
+      - name: Install UPX (optional size optimizer)
+        shell: pwsh
         run: |
-          pyinstaller --onefile --name PDFCompressor main.py
-  
-      - name: Build executable for Windows
-        if: runner.os == 'Windows'
-        run: |
-          python3 -m PyInstaller --onefile --windowed --name PDFCompressor main.py
+          $upx_url = "https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip"
+          Invoke-WebRequest -Uri $upx_url -OutFile "$env:TEMP\upx.zip"
+          Expand-Archive -Path "$env:TEMP\upx.zip" -DestinationPath "$env:TEMP\upx"
+          $upx_exe = Get-ChildItem -Recurse "$env:TEMP\upx" -Filter "upx.exe" | Select-Object -First 1
+          Copy-Item $upx_exe.FullName -Destination "upx.exe"
+          Write-Host "UPX installed: $(.\upx.exe --version | Select-Object -First 1)"
 
-      - name: Upload executable as artifact for Linux
-        if: runner.os == 'Linux'
+      - name: Build with PyInstaller
+        shell: pwsh
+        run: uv run pyinstaller PDFCompressor.spec
+
+      - name: Package distribution as ZIP
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $zip_name = "PDFCompressor-$version-windows.zip"
+          Compress-Archive -Path "dist\PDFCompressor" -DestinationPath "dist\$zip_name"
+          Write-Host "Created: dist\$zip_name"
+          echo "ZIP_NAME=$zip_name" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ExecutablesLinux
-          path: |
-            dist/PDFCompressor
+          name: PDFCompressor-windows
+          path: dist/${{ env.ZIP_NAME }}
 
-      - name: Upload executable as artifact for Windows
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: ExecutablesWindows
-          path: |
-            dist/PDFCompressor.exe
+          name: "PDF Compressor ${{ github.ref_name }}"
+          body: |
+            ## Instalación
 
-      - name: Create Release for Linux
-        if: runner.os == 'Linux'
-        id: create_release_for_linux
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}-linux
-          files: |
-            dist/PDFCompressor
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            1. Descarga `${{ env.ZIP_NAME }}`
+            2. Extrae el ZIP en cualquier carpeta
+            3. Ejecuta `PDFCompressor\PDFCompressor.exe`
 
-      - name: Create Release for Windows
-        if: runner.os == 'Windows'
-        id: create_release_for_windows
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}-windows
-          files: |
-            dist/PDFCompressor.exe
+            No requiere instalar Python ni Ghostscript.
+          files: dist/${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
