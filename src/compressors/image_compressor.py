@@ -4,6 +4,10 @@ from typing import Callable
 
 from PIL import Image
 
+# Disable Pillow's decompression-bomb guard — this is a local desktop app
+# where the user selects their own files, so the limit serves no purpose.
+Image.MAX_IMAGE_PIXELS = None
+
 
 class ImageCompressorThread:
     def __init__(
